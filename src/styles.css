@@ -1,0 +1,347 @@
+:root {
+  color: #231f1a;
+  background: #f6f2ea;
+  font-family:
+    "Hiragino Kaku Gothic ProN", "Yu Gothic", "YuGothic", "Noto Sans JP", system-ui, sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  --ink: #231f1a;
+  --muted: #766f64;
+  --paper: #fffaf1;
+  --paper-strong: #fffdf8;
+  --line: #d8cbb8;
+  --accent: #9f352d;
+  --accent-dark: #742a24;
+  --leaf: #426b55;
+  --gold: #c99a3d;
+  --shadow: 0 18px 45px rgba(72, 49, 28, 0.12);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background:
+    linear-gradient(90deg, rgba(159, 53, 45, 0.06) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(66, 107, 85, 0.05) 1px, transparent 1px), #f6f2ea;
+  background-size: 34px 34px;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.app-shell {
+  width: min(1060px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 48px 0 64px;
+}
+
+.hero {
+  display: grid;
+  gap: 18px;
+  justify-items: center;
+  text-align: center;
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--leaf);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+h1 {
+  margin: 0;
+  color: var(--ink);
+  font-family: "Yu Mincho", "Hiragino Mincho ProN", serif;
+  font-size: clamp(2.25rem, 6vw, 4.8rem);
+  font-weight: 700;
+  line-height: 1.08;
+}
+
+.description {
+  width: min(620px, 100%);
+  margin: 0;
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1.8;
+}
+
+.name-form {
+  width: min(720px, 100%);
+  margin-top: 12px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 250, 241, 0.88);
+  box-shadow: var(--shadow);
+  text-align: left;
+}
+
+.name-form label {
+  display: block;
+  margin-bottom: 10px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.input-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+}
+
+.input-row input {
+  width: 100%;
+  min-height: 54px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper-strong);
+  color: var(--ink);
+  font-size: 1.15rem;
+  padding: 0 16px;
+  outline: none;
+}
+
+.input-row input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px rgba(159, 53, 45, 0.12);
+}
+
+.input-row button {
+  min-width: 142px;
+  min-height: 54px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fffdf8;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 700;
+}
+
+.input-row button:disabled {
+  cursor: wait;
+  opacity: 0.68;
+}
+
+.input-row button:not(:disabled):hover {
+  background: var(--accent-dark);
+}
+
+.spin-icon,
+.roulette-card.spinning .word-window {
+  animation: spin 0.85s linear infinite;
+}
+
+.error-message {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: #8b1f18;
+  font-weight: 700;
+}
+
+.roulette-area {
+  margin-top: 36px;
+}
+
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.roulette-card {
+  min-height: 306px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  box-shadow: var(--shadow);
+  padding: 18px;
+  display: grid;
+  grid-template-rows: auto auto 74px auto;
+  gap: 14px;
+  position: relative;
+  overflow: hidden;
+}
+
+.roulette-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 5px;
+  background: var(--gold);
+  opacity: 0.7;
+}
+
+.roulette-card.done {
+  border-color: rgba(159, 53, 45, 0.48);
+}
+
+.roulette-card.done::before {
+  background: var(--accent);
+  opacity: 1;
+}
+
+.roulette-card.missing {
+  opacity: 0.72;
+}
+
+.card-topline {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.kanji-mark {
+  font-family: "Yu Mincho", "Hiragino Mincho ProN", serif;
+  font-size: 4.6rem;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.word-window {
+  border: 1px solid rgba(216, 203, 184, 0.95);
+  border-radius: 8px;
+  background: #fffdf8;
+  color: var(--accent-dark);
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  padding: 10px;
+  font-size: clamp(1.28rem, 4vw, 1.8rem);
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.roulette-card.spinning .word-window {
+  animation-name: pulse;
+  animation-duration: 0.32s;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
+.result-line {
+  align-self: end;
+  min-height: 48px;
+  margin: 0;
+  color: var(--muted);
+  font-weight: 700;
+  line-height: 1.55;
+}
+
+.roulette-card.done .result-line {
+  color: var(--accent-dark);
+}
+
+.notice-list {
+  display: grid;
+  gap: 8px;
+  margin: 18px 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.notice-list p {
+  margin: 0;
+}
+
+.summary {
+  margin: 28px auto 0;
+  width: min(720px, 100%);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 253, 248, 0.94);
+  box-shadow: var(--shadow);
+  padding: 22px;
+}
+
+.summary-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--leaf);
+}
+
+.summary h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.summary ol {
+  margin: 18px 0 0;
+  padding-left: 1.5rem;
+  display: grid;
+  gap: 10px;
+  color: var(--ink);
+  font-size: 1.1rem;
+  font-weight: 800;
+  line-height: 1.6;
+}
+
+@keyframes pulse {
+  0% {
+    transform: translateY(0);
+    filter: blur(0);
+  }
+  50% {
+    transform: translateY(-2px);
+    filter: blur(0.4px);
+  }
+  100% {
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 640px) {
+  .app-shell {
+    width: min(100% - 24px, 1060px);
+    padding: 30px 0 44px;
+  }
+
+  .input-row {
+    grid-template-columns: 1fr;
+  }
+
+  .input-row button {
+    width: 100%;
+  }
+
+  .roulette-card {
+    min-height: 286px;
+  }
+
+  .kanji-mark {
+    font-size: 4rem;
+  }
+}
