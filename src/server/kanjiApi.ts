@@ -10,28 +10,30 @@ let indexCache: KanjiIndex | null = null;
 const candidateCache = new Map<string, WordCandidate[]>();
 
 export function createKanjiApiMiddleware() {
-  return async (req: IncomingMessage, res: ServerResponse) => {
-    if (req.method !== "GET") {
-      sendJson(res, 405, { error: "Method not allowed" });
+  return handleKanjiApiRequest;
+}
+
+export async function handleKanjiApiRequest(req: IncomingMessage, res: ServerResponse) {
+  if (req.method !== "GET") {
+    sendJson(res, 405, { error: "Method not allowed" });
+    return;
+  }
+
+  try {
+    const url = new URL(req.url ?? "", "http://localhost");
+    const kanji = url.searchParams.get("kanji")?.trim() ?? "";
+
+    if (!/^\p{Script=Han}$/u.test(kanji)) {
+      sendJson(res, 400, { error: "kanji must be one Han character" });
       return;
     }
 
-    try {
-      const url = new URL(req.url ?? "", "http://localhost");
-      const kanji = url.searchParams.get("kanji")?.trim() ?? "";
-
-      if (!/^\p{Script=Han}$/u.test(kanji)) {
-        sendJson(res, 400, { error: "kanji must be one Han character" });
-        return;
-      }
-
-      const candidates = await getExternalCandidates(kanji);
-      sendJson(res, 200, { kanji, candidates, source: "external" });
-    } catch (error) {
-      console.error("Kanji proxy API failed", error);
-      sendJson(res, 502, { error: "External candidate fetch failed" });
-    }
-  };
+    const candidates = await getExternalCandidates(kanji);
+    sendJson(res, 200, { kanji, candidates, source: "external" });
+  } catch (error) {
+    console.error("Kanji proxy API failed", error);
+    sendJson(res, 502, { error: "External candidate fetch failed" });
+  }
 }
 
 async function getExternalCandidates(kanji: string): Promise<WordCandidate[]> {
