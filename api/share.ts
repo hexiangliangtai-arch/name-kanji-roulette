@@ -1,46 +1,11 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
 import { createHash } from "node:crypto";
-import { createElement } from "react";
-import { ImageResponse } from "@vercel/og";
 
 const TITLE = "名前漢字ルーレット";
-let fontPromise: Promise<ArrayBuffer> | undefined;
-let activeImages = 0;
-
-function getFont(): Promise<ArrayBuffer> {
-  fontPromise ??= readFile(join(process.cwd(), "assets/share/NotoSansJP.ttf"))
-    .then((buffer) => new Uint8Array(buffer).buffer)
-    .catch((error) => { fontPromise = undefined; throw error; });
-  return fontPromise;
-}
-
 function escapeHtml(value: string): string {
   return value.replace(/[&<>"']/g, (character) => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
   })[character]!);
-}
-
-async function renderImage(): Promise<Buffer> {
-  const image = new ImageResponse(createElement("div", {
-    style: {
-      display: "flex", flexDirection: "column", justifyContent: "center",
-      width: "100%", height: "100%", padding: "56px 64px",
-      background: "#fffaf1", color: "#231f1a", borderTop: "12px solid #9f352d",
-      fontFamily: "Noto Sans JP",
-    },
-  },
-  createElement("div", { style: { fontSize: 30, color: "#426b55", marginBottom: 28 } }, "名前からひらく熟語の一文字"),
-  createElement("div", { style: { fontSize: 76, color: "#9f352d", marginBottom: 24 } }, TITLE),
-  createElement("div", { style: { fontSize: 38, marginBottom: 44 } }, "あなたの名前で、熟語をまわそう。"),
-  createElement("div", {
-    style: { display: "flex", alignSelf: "flex-start", background: "#9f352d", color: "#fffaf1", fontSize: 32, padding: "18px 32px", borderRadius: 12 },
-  }, "名前を入力してスタート →")), {
-    width: 1200, height: 630,
-    fonts: [{ name: "Noto Sans JP", data: await getFont(), weight: 400, style: "normal" }],
-  });
-  return Buffer.from(await image.arrayBuffer());
 }
 
 export default async function handler(req: IncomingMessage, res: ServerResponse) {
@@ -72,32 +37,16 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     site.search = "";
     site.hash = "name-input";
     const pageUrl = new URL("/api/share", origin);
-    pageUrl.search = new URLSearchParams({ path: site.pathname }).toString();
-    const imageUrl = new URL(pageUrl);
-    imageUrl.searchParams.set("image", "1");
+    pageUrl.search = new URLSearchParams({ path: site.pathname, v: "screen-1" }).toString();
+    const imageUrl = new URL("/share-screen.png", origin);
 
     res.setHeader("x-content-type-options", "nosniff");
     res.setHeader("x-robots-tag", "noindex");
     if (url.searchParams.get("image") === "1") {
-      if (activeImages >= 2) {
-        res.setHeader("retry-after", "1");
-        fail(429, "Too many image requests");
-        return;
-      }
-      res.setHeader("content-type", "image/png");
-      if (req.method === "HEAD") {
-        res.setHeader("cache-control", "public, max-age=86400, s-maxage=86400");
-        res.end();
-        return;
-      }
-      activeImages += 1;
-      try {
-        const image = await renderImage();
-        res.setHeader("cache-control", "public, max-age=86400, s-maxage=86400");
-        res.end(image);
-      } finally {
-        activeImages -= 1;
-      }
+      res.statusCode = 307;
+      res.setHeader("location", imageUrl.href);
+      res.setHeader("cache-control", "public, max-age=86400, s-maxage=86400");
+      res.end();
       return;
     }
 

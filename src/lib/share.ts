@@ -32,7 +32,7 @@ export function buildShareLinks(text: string, siteUrl: string) {
   const characters = Array.from(text);
   const xText = characters.length > 100 ? `${characters.slice(0, 99).join("")}…` : text;
   const preview = new URL("/api/share", siteUrl);
-  preview.search = new URLSearchParams({ path: new URL(siteUrl).pathname }).toString();
+  preview.search = new URLSearchParams({ path: new URL(siteUrl).pathname, v: "screen-1" }).toString();
   const x = new URL("https://x.com/intent/tweet");
   x.search = new URLSearchParams({ text: xText, url: preview.href }).toString();
   const line = new URL("https://social-plugins.line.me/lineit/share");

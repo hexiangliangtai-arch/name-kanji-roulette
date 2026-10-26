@@ -34,8 +34,7 @@ test("shared page exposes a site thumbnail without including personal results", 
   const url = new URL(image);
   assert.equal(url.origin, "https://example.com");
   assert.equal(url.searchParams.has("text"), false);
-  assert.equal(url.searchParams.get("image"), "1");
-  assert.equal(url.searchParams.get("path"), "/app/");
+  assert.equal(url.pathname, "/share-screen.png");
   assert.ok(!result.body.includes("山田太郎"));
   assert.ok(result.body.includes('href="https://example.com/app/#name-input"'));
   assert.equal(result.headers["x-robots-tag"], "noindex");
@@ -66,7 +65,7 @@ test("off-site return paths and unsupported methods are rejected", async () => {
 });
 
 test("HEAD serves crawler headers without a response body", async () => {
-  for (const params of [{ text }, { text, image: "1" }]) {
+  for (const params of [{ text }]) {
     const result = await request(params, "HEAD");
     assert.equal(result.status, 200);
     assert.equal(result.body, undefined);
@@ -74,17 +73,12 @@ test("HEAD serves crawler headers without a response body", async () => {
   }
 });
 
-test("the Japanese site thumbnail is a cacheable 1200 by 630 PNG independent of results", async () => {
-  const result = await request({ text, image: "1" });
-  assert.equal(result.status, 200);
-  assert.equal(result.headers["content-type"], "image/png");
-  assert.match(result.headers["cache-control"], /s-maxage=86400/);
-  assert.equal(result.body.subarray(1, 4).toString(), "PNG");
-  assert.equal(result.body.readUInt32BE(16), 1200);
-  assert.equal(result.body.readUInt32BE(20), 630);
-  assert.ok(result.body.length < 5_000_000);
-  const otherResult = await request({ text: "別の人の結果", image: "1" });
-  assert.ok(result.body.equals(otherResult.body));
+test("the actual screen capture is a public 1200 by 630 PNG", () => {
+  const image = readFileSync("public/share-screen.png");
+  assert.equal(image.subarray(1, 4).toString(), "PNG");
+  assert.equal(image.readUInt32BE(16), 1200);
+  assert.equal(image.readUInt32BE(20), 630);
+  assert.ok(image.length < 5_000_000);
 });
 
 test("local development preview URLs retain HTTP", async () => {
@@ -92,9 +86,8 @@ test("local development preview URLs retain HTTP", async () => {
   assert.ok(result.body.includes("http://127.0.0.1:5176/api/share?"));
 });
 
-test("image generation bounds concurrency and allows subsequent requests", async () => {
+test("legacy image URLs redirect to the screen capture without generating images", async () => {
   const results = await Promise.all(Array.from({ length: 3 }, () => request({ text, image: "1" })));
-  assert.deepEqual(results.map((result) => result.status), [200, 200, 429]);
-  assert.equal(results[2].headers["retry-after"], "1");
-  assert.equal((await request({ text, image: "1" })).status, 200);
+  assert.ok(results.every((result) => result.status === 307));
+  assert.ok(results.every((result) => result.headers.location === "https://example.com/share-screen.png"));
 });
