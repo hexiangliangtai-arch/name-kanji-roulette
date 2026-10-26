@@ -114,7 +114,7 @@ export function ResultShare({ result }: { result: ShareResult }) {
         <button type="button" onClick={copyText}>共有文をコピー</button>
       </div>
       <p className="share-help">
-        X・LINEのボタンでは文章とリンクを共有します。画像は保存して添付するか、端末の共有メニューをご利用ください。
+        Xでは結果画像付きのリンク、LINEでは文章とサイトリンクを共有します。画像は保存して添付するか、端末の共有メニューをご利用ください。
         共有先によって文章やリンクが添付されない場合は、共有文をコピーして追加できます。
       </p>
       {message && <p className="share-message" role="status">{message}</p>}

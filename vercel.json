@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/share.ts": {
+      "includeFiles": "assets/share/**"
+    }
+  }
+}
