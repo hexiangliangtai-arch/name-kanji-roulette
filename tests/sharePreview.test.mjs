@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+import { createHash } from "node:crypto";
+import vm from "node:vm";
 import ts from "typescript";
 
 // Exercise the actual server handler without requiring a TypeScript test runner.
@@ -23,7 +25,7 @@ async function request(params = { text }, method = "GET", headers = { host: "exa
   return { status: response.statusCode, headers: response.headers, body };
 }
 
-test("shared page exposes result-specific X and OG metadata without JavaScript", async () => {
+test("shared page exposes a site thumbnail without including personal results", async () => {
   const result = await request({ text, path: "/app/" });
   assert.equal(result.status, 200);
   assert.match(result.headers["content-type"], /text\/html/);
@@ -31,24 +33,30 @@ test("shared page exposes result-specific X and OG metadata without JavaScript",
   const image = result.body.match(/name="twitter:image" content="([^"]+)"/)[1].replaceAll("&amp;", "&");
   const url = new URL(image);
   assert.equal(url.origin, "https://example.com");
-  assert.equal(url.searchParams.get("text"), text);
+  assert.equal(url.searchParams.has("text"), false);
   assert.equal(url.searchParams.get("image"), "1");
   assert.equal(url.searchParams.get("path"), "/app/");
-  assert.ok(result.body.includes('href="https://example.com/app/"'));
+  assert.ok(!result.body.includes("山田太郎"));
+  assert.ok(result.body.includes('href="https://example.com/app/#name-input"'));
   assert.equal(result.headers["x-robots-tag"], "noindex");
 });
 
-test("shared text is escaped in visible content and metadata", async () => {
+test("legacy result text is ignored and the permitted script navigates to the input", async () => {
   const result = await request({ text: '<script>alert("x")</script>\n山 & #田' });
   assert.equal(result.status, 200);
-  assert.ok(!result.body.includes("<script>"));
-  assert.ok(result.body.includes("&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt;"));
+  assert.ok(!result.body.includes('alert("x")'));
+  assert.ok(!result.body.includes("山 & #田"));
+  const script = result.body.match(/<script>(.*?)<\/script>/s)[1];
+  const hash = createHash("sha256").update(script).digest("base64");
+  assert.ok(result.headers["content-security-policy"].includes(`'sha256-${hash}'`));
+  let target;
+  vm.runInNewContext(script, { location: { replace(url) { target = url; } } });
+  assert.equal(target, "https://example.com/#name-input");
   assert.ok(result.headers["content-security-policy"].includes("default-src 'none'"));
 });
 
-test("invalid data, off-site return paths, and unsupported methods are rejected", async () => {
-  for (const params of [{}, { text: " " }, { text: "山".repeat(4097) },
-    { text, path: "//evil.example" }, { text, path: "/\\evil.example" },
+test("off-site return paths and unsupported methods are rejected", async () => {
+  for (const params of [{ text, path: "//evil.example" }, { text, path: "/\\evil.example" },
     { text, path: "/\n/evil.example" }, { text, path: "https://evil.example" }]) {
     const result = await request(params);
     assert.equal(result.status, 400);
@@ -66,7 +74,7 @@ test("HEAD serves crawler headers without a response body", async () => {
   }
 });
 
-test("actual Japanese result image is a cacheable 1200 by 630 PNG", async () => {
+test("the Japanese site thumbnail is a cacheable 1200 by 630 PNG independent of results", async () => {
   const result = await request({ text, image: "1" });
   assert.equal(result.status, 200);
   assert.equal(result.headers["content-type"], "image/png");
@@ -75,6 +83,8 @@ test("actual Japanese result image is a cacheable 1200 by 630 PNG", async () => 
   assert.equal(result.body.readUInt32BE(16), 1200);
   assert.equal(result.body.readUInt32BE(20), 630);
   assert.ok(result.body.length < 5_000_000);
+  const otherResult = await request({ text: "別の人の結果", image: "1" });
+  assert.ok(result.body.equals(otherResult.body));
 });
 
 test("local development preview URLs retain HTTP", async () => {

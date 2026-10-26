@@ -35,6 +35,9 @@ function App() {
   );
 
   useEffect(() => {
+    if (window.location.hash === "#name-input") {
+      document.getElementById("name-input")?.focus();
+    }
     return () => clearTimers(timersRef.current);
   }, []);
 

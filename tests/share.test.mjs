@@ -46,7 +46,7 @@ test("X and LINE URLs round-trip Japanese, newlines, ampersands, and hashes", ()
       const preview = new URL(url.searchParams.get("url"));
       assert.equal(preview.origin, new URL(siteUrl).origin);
       assert.equal(preview.pathname, "/api/share");
-      assert.equal(preview.searchParams.get("text"), text);
+      assert.equal(preview.searchParams.has("text"), false);
       assert.equal(preview.searchParams.get("path"), "/app/");
     } else {
       assert.equal(url.searchParams.get("url"), siteUrl);
@@ -60,7 +60,7 @@ test("X truncates at Unicode code-point boundaries, preserving LINE text and lin
   const links = loadShare().buildShareLinks(text, siteUrl);
   assert.equal(new URL(links.x).searchParams.get("text"), "𠮷".repeat(99) + "…");
   const preview = new URL(new URL(links.x).searchParams.get("url"));
-  assert.equal(preview.searchParams.get("text"), text);
+  assert.equal(preview.searchParams.has("text"), false);
   assert.equal(new URL(links.line).searchParams.get("text"), text);
 });
 
