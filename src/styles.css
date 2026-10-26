@@ -299,6 +299,129 @@ h1 {
   line-height: 1.6;
 }
 
+.result-share {
+  margin-top: 26px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+}
+
+.result-share h3 {
+  margin: 0;
+  color: var(--leaf);
+  font-size: 1.1rem;
+}
+
+.share-caption,
+.share-help {
+  color: var(--muted);
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+.share-caption {
+  margin: 10px 0 18px;
+}
+
+.share-preview {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--paper);
+}
+
+.share-preview img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.share-placeholder {
+  margin: 0;
+  padding: 28px 18px;
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.7;
+}
+
+.share-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.share-actions a,
+.result-share button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 10px 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper-strong);
+  color: var(--ink);
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.share-actions .share-x {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: #fffdf8;
+}
+
+.share-actions .share-line {
+  border-color: var(--leaf);
+  background: var(--leaf);
+  color: #fffdf8;
+}
+
+.share-actions a:hover,
+.result-share button:not(:disabled):hover {
+  filter: brightness(0.94);
+}
+
+.share-actions a:focus-visible,
+.result-share button:focus-visible,
+.share-copy-fallback textarea:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.result-share button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.share-help {
+  margin: 14px 0 0;
+  font-size: 0.85rem;
+}
+
+.share-message {
+  color: var(--accent-dark);
+  line-height: 1.7;
+}
+
+.share-copy-fallback {
+  display: grid;
+  gap: 8px;
+  color: var(--muted);
+}
+
+.share-copy-fallback textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper-strong);
+  color: var(--ink);
+  font: inherit;
+  resize: vertical;
+}
+
 @keyframes pulse {
   0% {
     transform: translateY(0);

@@ -1,6 +1,8 @@
 import { AlertCircle, Loader2, RotateCw, Sparkles } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { ResultShare } from "./components/ResultShare";
 import { extractKanji, pickRandom, resolveKanjiResults } from "./lib/kanji";
+import type { ShareResult } from "./lib/share";
 import type { KanjiResult, RouletteCardState, WordCandidate } from "./types";
 
 const INITIAL_NAME = "";
@@ -9,11 +11,23 @@ const STOP_GAP_MS = 620;
 
 function App() {
   const [name, setName] = useState(INITIAL_NAME);
+  const [resultName, setResultName] = useState("");
   const [cards, setCards] = useState<RouletteCardState[]>([]);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSpinning, setIsSpinning] = useState(false);
   const timersRef = useRef<number[]>([]);
+
+  const shareResult = useMemo<ShareResult | null>(() => {
+    if (isLoading || isSpinning || cards.length === 0 ||
+        cards.some((card) => card.status !== "done" && card.status !== "missing")) {
+      return null;
+    }
+    return {
+      name: resultName,
+      entries: cards.map(({ kanji, selectedWord }) => ({ kanji, selectedWord })),
+    };
+  }, [cards, resultName, isLoading, isSpinning]);
 
   const notices = useMemo(
     () => Array.from(new Set(cards.map((card) => card.notice).filter(Boolean))),
@@ -49,6 +63,7 @@ function App() {
     try {
       const results = await resolveKanjiResults(kanjiList);
       const nextCards = results.map(createInitialCard);
+      setResultName(name.trim());
       setCards(nextCards);
       setIsLoading(false);
       startRoulette(nextCards);
@@ -128,7 +143,7 @@ function App() {
         <p className="eyebrow">名前からひらく熟語の一文字</p>
         <h1 id="page-title">名前漢字ルーレット</h1>
         <p className="description">
-          名前に含まれる漢字だけを拾い、外部候補またはローカル辞書から熟語を選びます。
+          名前に含まれる漢字だけを拾い、その漢字が使われている熟語をルーレットで選びます。
         </p>
 
         <form className="name-form" onSubmit={handleSubmit}>
@@ -174,7 +189,7 @@ function App() {
         </section>
       )}
 
-      {cards.length > 0 && !isSpinning && (
+      {shareResult && (
         <section className="summary" aria-labelledby="summary-title">
           <div className="summary-title">
             <Sparkles size={20} />
@@ -196,6 +211,7 @@ function App() {
               </li>
             ))}
           </ol>
+          <ResultShare result={shareResult} />
         </section>
       )}
     </main>
@@ -203,14 +219,10 @@ function App() {
 }
 
 function RouletteCard({ card, order }: { card: RouletteCardState; order: number }) {
-  const sourceLabel =
-    card.source === "external" ? "外部候補" : card.source === "local" ? "ローカル辞書" : "候補なし";
-
   return (
     <article className={`roulette-card ${card.status}`}>
       <div className="card-topline">
         <span>{order}文字目</span>
-        <span>{sourceLabel}</span>
       </div>
       <div className="kanji-mark">{card.kanji}</div>
       <div className="word-window" aria-live="polite">
