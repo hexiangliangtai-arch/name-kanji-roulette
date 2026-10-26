@@ -3,11 +3,39 @@ import type { WordCandidate } from "../types";
 
 const BASE_URL = "https://kanji.nonai.jp/";
 const REQUEST_TIMEOUT_MS = 4500;
+// These limits apply per running instance, including serverless deployments.
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const MAX_REQUESTS_PER_WINDOW = 120;
+const MAX_PENDING_LOOKUPS = 16;
+const MAX_CACHED_CANDIDATES = 512;
 
 type KanjiIndex = Map<string, string>;
 
 let indexCache: KanjiIndex | null = null;
 const candidateCache = new Map<string, WordCandidate[]>();
+const pendingCandidates = new Map<string, Promise<WordCandidate[]>>();
+let pendingIndex: Promise<KanjiIndex> | null = null;
+let requestWindowStart = Date.now();
+let requestCount = 0;
+
+class RateLimitError extends Error {
+  constructor(readonly retryAfter: number) {
+    super("Too many requests");
+  }
+}
+
+function checkRequestLimit() {
+  const now = Date.now();
+  if (now - requestWindowStart >= RATE_LIMIT_WINDOW_MS) {
+    requestWindowStart = now;
+    requestCount = 0;
+  }
+  if (requestCount >= MAX_REQUESTS_PER_WINDOW) {
+    const retryAfter = Math.ceil((requestWindowStart + RATE_LIMIT_WINDOW_MS - now) / 1000);
+    throw new RateLimitError(Math.max(1, retryAfter));
+  }
+  requestCount += 1;
+}
 
 export function createKanjiApiMiddleware() {
   return handleKanjiApiRequest;
@@ -28,9 +56,16 @@ export async function handleKanjiApiRequest(req: IncomingMessage, res: ServerRes
       return;
     }
 
+    checkRequestLimit();
     const candidates = await getExternalCandidates(kanji);
     sendJson(res, 200, { kanji, candidates, source: "external" });
   } catch (error) {
+    if (error instanceof RateLimitError) {
+      res.setHeader("retry-after", String(error.retryAfter));
+      res.setHeader("cache-control", "no-store");
+      sendJson(res, 429, { error: "Too many requests" });
+      return;
+    }
     console.error("Kanji proxy API failed", error);
     sendJson(res, 502, { error: "External candidate fetch failed" });
   }
@@ -42,16 +77,44 @@ async function getExternalCandidates(kanji: string): Promise<WordCandidate[]> {
     return cached;
   }
 
+  const pending = pendingCandidates.get(kanji);
+  if (pending) {
+    return pending;
+  }
+  if (pendingCandidates.size >= MAX_PENDING_LOOKUPS) {
+    throw new RateLimitError(1);
+  }
+
+  const request = loadExternalCandidates(kanji);
+  pendingCandidates.set(kanji, request);
+  try {
+    return await request;
+  } finally {
+    pendingCandidates.delete(kanji);
+  }
+}
+
+function cacheCandidates(kanji: string, candidates: WordCandidate[]) {
+  if (candidateCache.size >= MAX_CACHED_CANDIDATES) {
+    const oldest = candidateCache.keys().next().value;
+    if (oldest !== undefined) {
+      candidateCache.delete(oldest);
+    }
+  }
+  candidateCache.set(kanji, candidates);
+}
+
+async function loadExternalCandidates(kanji: string): Promise<WordCandidate[]> {
   const index = await getKanjiIndex();
   const pagePath = index.get(kanji);
   if (!pagePath) {
-    candidateCache.set(kanji, []);
+    cacheCandidates(kanji, []);
     return [];
   }
 
   const html = await fetchText(new URL(pagePath, BASE_URL).toString());
   const candidates = extractWordsFromKanjiPage(html, kanji);
-  candidateCache.set(kanji, candidates);
+  cacheCandidates(kanji, candidates);
   return candidates;
 }
 
@@ -60,6 +123,19 @@ async function getKanjiIndex(): Promise<KanjiIndex> {
     return indexCache;
   }
 
+  if (pendingIndex) {
+    return pendingIndex;
+  }
+
+  pendingIndex = loadKanjiIndex();
+  try {
+    return await pendingIndex;
+  } finally {
+    pendingIndex = null;
+  }
+}
+
+async function loadKanjiIndex(): Promise<KanjiIndex> {
   const html = await fetchText(BASE_URL);
   const index = new Map<string, string>();
   const linkPattern = /<a\s+[^>]*href=(?:"([^"]+)"|'([^']+)'|([^>\s]+))[^>]*>([^<]+)<\/a>/g;
